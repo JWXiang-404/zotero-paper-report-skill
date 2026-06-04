@@ -1,0 +1,15 @@
+# uv / Python virtual environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# OS
+Thumbs.db

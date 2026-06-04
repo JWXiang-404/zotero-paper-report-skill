@@ -16,11 +16,13 @@
 
 ### 核心特性
 
-- 一条命令完成全部流程：只需提供论文标题
+- **单篇模式**：一条命令完成全部流程 — 只需提供论文标题
+- **批量模式**：一键为整个 Zotero 分类生成报告，支持嵌套子分类递归遍历和可配置并发生成
 - PDF 不可用时自动回退到基于摘要的报告模式
 - 支持 HTML / Markdown 两种输出格式，Zotero 笔记标题正确显示
 - 报告中标有原文图表/公式引用标注（`[参考图N]`、`[参考公式(N)]`）
 - 内置处理扫描件 PDF、缺失附件、搜索歧义等异常路径
+- 断点续传：中断的批量任务可恢复，不重复处理已完成条目
 
 ## 依赖
 
@@ -35,7 +37,9 @@
 
 ## 安装
 
-### macOS & Linux
+> **一键安装脚本** — 自动创建隔离 Python 环境、安装全部依赖、配置 MCP 服务、部署 skills。
+
+### 快速开始
 
 ```bash
 # 1. 克隆仓库（含子模块）
@@ -47,6 +51,25 @@ cd zotero-paper-report-skill
 ```
 
 安装脚本会：
+- 检查前置依赖（Claude Code、npm、Python）
+- 自动创建隔离虚拟环境（默认 uv）
+- 安装 Python 依赖（`pyyaml`、`pypdf`、`pdfplumber`）
+- 安装 `zotero-paper-report` CLI 命令行工具
+- 自动探测 Zotero 本地 API 端口，配置 `zotero-mcp` MCP 服务
+- 克隆并安装 `claude-scientific-writer` skill
+- 将所有 skill 文件复制到 `~/.claude/skills/`
+
+### 可选参数
+
+```bash
+./install.sh --env uv              # 使用 uv venv（默认推荐）
+./install.sh --env conda           # 使用 conda/miniconda
+./install.sh --env venv            # 使用 python3 -m venv
+./install.sh --skill-only          # 仅安装 skill 文件，跳过 Python 环境
+./install.sh --zotero-port 23120   # 手动指定 Zotero 端口号
+./install.sh --env-name "zpr-prod" # 自定义虚拟环境名称
+./install.sh --help                # 查看所有选项
+```
 - 检查 Claude Code、npm 及所有依赖是否就绪
 - 将 skill 复制到 `~/.claude/skills/`
 - 对缺失的依赖打印安装指引链接
@@ -88,6 +111,63 @@ cd zotero-paper-report-skill
 ├── 六、总结与展望
 └── 关键术语对照
 ```
+
+## 批量生成
+
+一键为整个 Zotero 分类（含嵌套子分类）的所有论文生成文献报告。
+
+### 方式一：CLI 命令行
+
+```bash
+# 基本用法：为某分类下所有论文生成报告（始终递归子分类）
+zotero-paper-report --collection "编译优化"
+
+# 指定并发度
+zotero-paper-report --collection "编译优化" --concurrency 5
+
+# 预览模式（不实际生成）
+zotero-paper-report --collection "编译优化" --preview-only
+
+# 恢复中断的任务
+zotero-paper-report --resume <run_id>
+
+# 为所有顶级分类生成
+zotero-paper-report --all
+```
+
+### 方式二：Skill 调用（在 Claude Code 中）
+
+直接用自然语言请求，skill 会自动识别批量意图：
+
+```
+/zotero-paper-report 给"编译优化"分类下的所有论文生成文献报告
+```
+
+Skill 会：
+1. 自动检测批量请求
+2. 提取分类名和选项参数
+3. 向你确认后执行
+4. 论文较多时后台运行，完成后汇报汇总结果
+
+### 全局配置
+
+配置文件 `python/config.yaml`（可直接编辑）：
+
+```yaml
+output:
+  format: html              # html | markdown
+  save_local: true
+
+batch:
+  concurrency: 3            # 最大并行 Claude Code 实例数
+  skip_existing: true       # 跳过已有报告的论文
+
+behavior:
+  on_missing_pdf: skip      # skip | abstract
+  subagent_timeout: 600     # 每篇论文超时时间（秒）
+```
+
+所有配置均支持 CLI 参数覆盖或环境变量覆盖（如 `ZOTERO_BATCH_FORMAT`、`ZOTERO_BATCH_CONCURRENCY` 等）。
 
 ## 许可证
 

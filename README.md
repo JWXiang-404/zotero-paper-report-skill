@@ -16,11 +16,13 @@ This skill automates the entire literature reporting workflow:
 
 ### Key Features
 
-- One-command workflow: just provide a paper title
+- **Single-paper mode**: One-command workflow — just provide a paper title
+- **Batch mode**: Generate reports for entire Zotero collections at once, with recursive subcollection traversal and configurable concurrency
 - Fallback to abstract-based reporting when PDF is unavailable
 - Choice of HTML or Markdown output with automatic Zotero note formatting
 - Cross-references to original paper figures, tables, and equations (`[参考图N]`)
 - Built-in handling for scanned PDFs, missing attachments, and ambiguous search results
+- Resume support: interrupted batch runs can be resumed without re-processing completed items
 
 ## Dependencies
 
@@ -35,28 +37,38 @@ The `pdf` skill (from [anthropics/skills](https://github.com/anthropics/skills))
 
 ## Installation
 
-### macOS & Linux
+> **One-click installer** — creates an isolated Python environment, installs all dependencies, configures MCP servers, and deploys skills.
+
+### Quick Start
 
 ```bash
 # 1. Clone with submodules
 git clone --recurse-submodules https://github.com/JWXiang-404/zotero-paper-report-skill.git
 cd zotero-paper-report-skill
 
-# 2. Install
+# 2. One-click install
 ./install.sh
 ```
 
 The installer will:
-- Check that Claude Code, npm, and all dependencies are available
-- Copy the skills to `~/.claude/skills/`
-- Print helpful links for any missing dependencies
+- Check prerequisites (Claude Code, npm, Python)
+- Create an isolated virtual environment (uv by default)
+- Install Python dependencies (`pyyaml`, `pypdf`, `pdfplumber`)
+- Install the `zotero-paper-report` CLI
+- Auto-detect Zotero's local API port and configure `zotero-mcp`
+- Clone and install `claude-scientific-writer` skill
+- Copy all skills to `~/.claude/skills/`
 
 ### Options
 
 ```bash
-./install.sh --agent claude     # Install for Claude Code (default)
-./install.sh --agent opencode   # Reserved for future OpenCode support
-./install.sh --help             # Show help
+./install.sh --env uv              # Use uv venv (default, recommended)
+./install.sh --env conda           # Use conda/miniconda
+./install.sh --env venv            # Use python3 -m venv
+./install.sh --skill-only          # Install skills only, skip Python env
+./install.sh --zotero-port 23120   # Specify Zotero port explicitly
+./install.sh --env-name "zpr-prod" # Custom environment name
+./install.sh --help                # Show all options
 ```
 
 ## Usage
@@ -64,7 +76,7 @@ The installer will:
 In Claude Code, invoke the skill with:
 
 ```
-/zotero-paper-report 帮我为标题包含"ABC"的论文生成文献报告
+/zotero-paper-report generate a literature report for the paper "Attention Is All You Need"
 ```
 
 Or describe your need in natural language — the skill triggers automatically when you mention generating a literature report from a Zotero paper.
@@ -88,6 +100,64 @@ Or describe your need in natural language — the skill triggers automatically w
 ├── 六、总结与展望
 └── 关键术语对照
 ```
+
+## Batch Generation
+
+Generate reports for all papers in a Zotero collection — including nested subcollections — with a single command.
+
+### Method 1: CLI (Terminal)
+
+```bash
+# Basic: generate reports for all papers in a collection (always recursive)
+zotero-paper-report --collection "My Collection"
+
+# With concurrency control
+zotero-paper-report --collection "My Collection" --concurrency 5
+
+# Preview mode (no generation)
+zotero-paper-report --collection "My Collection" --preview-only
+
+# Resume an interrupted run
+zotero-paper-report --resume <run_id>
+
+# Generate for all top-level collections
+zotero-paper-report --all
+```
+
+### Method 2: Skill (in Claude Code)
+
+Just ask naturally — the skill automatically detects batch intent:
+
+```
+/zotero-paper-report generate reports for all papers in the "My Collection" collection
+```
+
+The skill will:
+1. Detect the batch request
+2. Extract the collection name and options
+3. Confirm parameters with you
+4. Run the batch engine in the background (for large collections)
+5. Report a summary when complete
+
+### Configuration
+
+Global configuration is stored in `python/config.yaml` (editable):
+
+```yaml
+output:
+  format: html              # html | markdown
+  save_local: true
+
+batch:
+  concurrency: 3            # max parallel Claude Code instances
+  skip_existing: true       # skip papers with existing reports
+
+behavior:
+  on_missing_pdf: skip      # skip | abstract
+  subagent_timeout: 600     # seconds per paper
+```
+
+All settings can be overridden via CLI flags or environment variables (`ZOTERO_BATCH_FORMAT`, `ZOTERO_BATCH_CONCURRENCY`, etc.).
 
 ## License
 
