@@ -1,0 +1,3 @@
+[submodule "3rdparty/anthropics-skills"]
+	path = 3rdparty/anthropics-skills
+	url = https://github.com/anthropics/skills.git
