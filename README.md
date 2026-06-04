@@ -39,7 +39,7 @@ The `pdf` skill (from [anthropics/skills](https://github.com/anthropics/skills))
 
 ```bash
 # 1. Clone with submodules
-git clone --recurse-submodules https://github.com/<your-username>/zotero-paper-report-skill.git
+git clone --recurse-submodules https://github.com/JWXiang-404/zotero-paper-report-skill.git
 cd zotero-paper-report-skill
 
 # 2. Install
