@@ -39,7 +39,7 @@
 
 ```bash
 # 1. 克隆仓库（含子模块）
-git clone --recurse-submodules https://github.com/<your-username>/zotero-paper-report-skill.git
+git clone --recurse-submodules https://github.com/JWXiang-404/zotero-paper-report-skill.git
 cd zotero-paper-report-skill
 
 # 2. 一键安装
