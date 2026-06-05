@@ -43,6 +43,8 @@ class BatchOrchestrator:
         self._completed_count = 0
         self._total_items = 0
         self._generated_count = 0
+        self._total_input_tokens = 0
+        self._total_output_tokens = 0
         self._lock = asyncio.Lock()
 
     # ── public API ─────────────────────────────────────────────
@@ -133,7 +135,8 @@ class BatchOrchestrator:
         # ── Print header ───────────────────────────────────
         coll_names = [c.name for c in resolved]
         reporter.print_header(
-            coll_names, self.config.batch.concurrency, len(to_generate)
+            coll_names, self.config.batch.concurrency,
+            len(to_generate) + len(skipped)
         )
 
         # ── Process ────────────────────────────────────────
@@ -153,10 +156,13 @@ class BatchOrchestrator:
         # Spawn subagents
         tasks = [self._process_one(item) for item in to_generate]
         await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.sleep(0.1)  # let subprocess transports drain
 
         # ── Summary ────────────────────────────────────────
         total_duration = time.monotonic() - start_time
-        reporter.print_summary(self.tracker, total_duration)
+        reporter.print_summary(self.tracker, total_duration,
+            total_input_tokens=self._total_input_tokens,
+            total_output_tokens=self._total_output_tokens)
 
         counts = self.tracker.counts()
         return {
@@ -180,6 +186,8 @@ class BatchOrchestrator:
         self._total_items = len(items)
         self._generated_count = len(items)
         self._completed_count = 0
+        self._total_input_tokens = 0
+        self._total_output_tokens = 0
         self._sem = asyncio.Semaphore(self.config.batch.concurrency)
 
         reporter.print_header(
@@ -190,7 +198,9 @@ class BatchOrchestrator:
         await asyncio.gather(*tasks, return_exceptions=True)
 
         total_duration = time.monotonic() - start_time
-        reporter.print_summary(self.tracker, total_duration)
+        reporter.print_summary(self.tracker, total_duration,
+            total_input_tokens=self._total_input_tokens,
+            total_output_tokens=self._total_output_tokens)
 
         counts = self.tracker.counts()
         return {
@@ -228,6 +238,8 @@ class BatchOrchestrator:
 
             async with self._lock:
                 if result.success:
+                    self._total_input_tokens += result.input_tokens
+                    self._total_output_tokens += result.output_tokens
                     self.tracker.mark_done(
                         item.key,
                         note_key=result.note_key,
@@ -236,6 +248,8 @@ class BatchOrchestrator:
                     reporter.print_progress_done(
                         idx, total,
                         item.title, result.duration_sec, result.note_key,
+                        input_tokens=result.input_tokens,
+                        output_tokens=result.output_tokens,
                     )
                 else:
                     err_msg = result.error or "unknown error"

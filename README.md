@@ -103,9 +103,7 @@ Or describe your need in natural language — the skill triggers automatically w
 
 ## Batch Generation
 
-Generate reports for all papers in a Zotero collection — including nested subcollections — with a single command.
-
-### Method 1: CLI (Terminal)
+Generate reports for all papers in a Zotero collection — including nested subcollections — with a single command. Batch processing is handled by the `zotero-paper-report` CLI, which spawns independent `claude -p` subprocesses for each paper, each invoking the single-paper skill.
 
 ```bash
 # Basic: generate reports for all papers in a collection (always recursive)
@@ -123,21 +121,6 @@ zotero-paper-report --resume <run_id>
 # Generate for all top-level collections
 zotero-paper-report --all
 ```
-
-### Method 2: Skill (in Claude Code)
-
-Just ask naturally — the skill automatically detects batch intent:
-
-```
-/zotero-paper-report generate reports for all papers in the "My Collection" collection
-```
-
-The skill will:
-1. Detect the batch request
-2. Extract the collection name and options
-3. Confirm parameters with you
-4. Run the batch engine in the background (for large collections)
-5. Report a summary when complete
 
 ### Configuration
 

@@ -70,18 +70,6 @@ cd zotero-paper-report-skill
 ./install.sh --env-name "zpr-prod" # 自定义虚拟环境名称
 ./install.sh --help                # 查看所有选项
 ```
-- 检查 Claude Code、npm 及所有依赖是否就绪
-- 将 skill 复制到 `~/.claude/skills/`
-- 对缺失的依赖打印安装指引链接
-
-### 选项
-
-```bash
-./install.sh --agent claude     # 为 Claude Code 安装（默认）
-./install.sh --agent opencode   # 预留：未来 OpenCode 支持
-./install.sh --help             # 查看帮助
-```
-
 ## 使用方法
 
 在 Claude Code 中，通过斜杠命令调用：
@@ -114,9 +102,7 @@ cd zotero-paper-report-skill
 
 ## 批量生成
 
-一键为整个 Zotero 分类（含嵌套子分类）的所有论文生成文献报告。
-
-### 方式一：CLI 命令行
+一键为整个 Zotero 分类（含嵌套子分类）的所有论文生成文献报告。批量处理由 `zotero-paper-report` CLI 驱动，每篇论文启动独立 `claude -p` 子进程逐一调用单篇 skill，互不干扰。
 
 ```bash
 # 基本用法：为某分类下所有论文生成报告（始终递归子分类）
@@ -134,20 +120,6 @@ zotero-paper-report --resume <run_id>
 # 为所有顶级分类生成
 zotero-paper-report --all
 ```
-
-### 方式二：Skill 调用（在 Claude Code 中）
-
-直接用自然语言请求，skill 会自动识别批量意图：
-
-```
-/zotero-paper-report 给"编译优化"分类下的所有论文生成文献报告
-```
-
-Skill 会：
-1. 自动检测批量请求
-2. 提取分类名和选项参数
-3. 向你确认后执行
-4. 论文较多时后台运行，完成后汇报汇总结果
 
 ### 全局配置
 

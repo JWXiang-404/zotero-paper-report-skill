@@ -53,14 +53,21 @@ def main() -> None:
     orchestrator = BatchOrchestrator(config, reader, tracker)
 
     try:
-        result = asyncio.run(
-            orchestrator.run(
-                collections=args.collection,
-                collection_keys=args.collection_key,
-                all_collections=args.all,
-                preview_only=args.preview_only,
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(
+                orchestrator.run(
+                    collections=args.collection,
+                    collection_keys=args.collection_key,
+                    all_collections=args.all,
+                    preview_only=args.preview_only,
+                )
             )
-        )
+            # Drain pending callbacks so subprocess transports clean up
+            loop.run_until_complete(asyncio.sleep(0.1))
+        finally:
+            loop.close()
     except KeyboardInterrupt:
         print("\n\n⚠️  批量生成已中断。")
         print(f"   恢复命令: zotero-paper-report --resume {run_id}")
@@ -285,12 +292,18 @@ def _resume(run_id: str) -> None:
     orchestrator = BatchOrchestrator(config, reader, tracker)
 
     try:
-        result = asyncio.run(
-            orchestrator.run_with_items(
-                to_generate,
-                run_id=new_run_id,
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(
+                orchestrator.run_with_items(
+                    to_generate,
+                    run_id=new_run_id,
+                )
             )
-        )
+            loop.run_until_complete(asyncio.sleep(0.1))
+        finally:
+            loop.close()
     except KeyboardInterrupt:
         print(f"\n\n⚠️  批量生成已中断。")
         print(f"   恢复命令: zotero-paper-report --resume {new_run_id}")

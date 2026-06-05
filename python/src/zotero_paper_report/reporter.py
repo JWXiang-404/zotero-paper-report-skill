@@ -51,14 +51,16 @@ def print_progress_done(
     title: str,
     duration_sec: float,
     note_key: str | None = None,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
 ) -> None:
     """Print a success line for one completed item."""
     note_str = f", note: {note_key}" if note_key else ""
-    # Truncate long titles
+    tok_str = f", {_fmt_tokens(input_tokens + output_tokens)} tok" if input_tokens + output_tokens > 0 else ""
     short_title = _shorten(title, 55)
     print(
         f"  {GREEN}[{index}/{total}] {CHECK}{NC} {short_title} "
-        f"{GRAY}({duration_sec:.0f}s{note_str}){NC}"
+        f"{GRAY}({duration_sec:.0f}s{tok_str}{note_str}){NC}"
     )
     sys.stdout.flush()
 
@@ -113,6 +115,8 @@ def print_progress_running(count: int) -> None:
 def print_summary(
     tracker: "ProgressTracker",
     total_duration_sec: float,
+    total_input_tokens: int = 0,
+    total_output_tokens: int = 0,
 ) -> None:
     """Print the final summary table after the batch completes."""
     counts = tracker.counts()
@@ -137,6 +141,9 @@ def print_summary(
     print(f"{BOLD}{GREEN}║{NC}  ✅ 成功生成: {done}")
     print(f"{BOLD}{GREEN}║{NC}  ❌ 失败: {failed}")
     print(f"{BOLD}{GREEN}║{NC}  ⏭  跳过: {skipped}")
+    total_tok = total_input_tokens + total_output_tokens
+    if total_tok > 0:
+        print(f"{BOLD}{GREEN}║{NC}  📊 总 tokens: {_fmt_tokens(total_input_tokens)} in + {_fmt_tokens(total_output_tokens)} out = {_fmt_tokens(total_tok)}")
     print(f"{BOLD}{GREEN}║{NC}  总耗时: {dur_min:.0f} 分钟")
 
     # Failed items
@@ -193,6 +200,14 @@ def print_config(config_summary: dict) -> None:
 
 
 # ── helpers ─────────────────────────────────────────────────────
+
+
+def _fmt_tokens(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n/1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n/1_000:.1f}k"
+    return str(n)
 
 
 def _shorten(text: str, max_len: int) -> str:

@@ -6,7 +6,6 @@ description: >-
   尤其是涉及 Zotero 文献库、论文解读、文献整理等场景。
   同时也适用于用户想对 Zotero 中已有论文生成结构化文献分析报告的情况。
   支持 PDF 无法提取时回退到摘要模式，以及多种异常路径的优雅处理。
-  支持按 Zotero 分类一键批量生成（通过内部调用 zotero-paper-report CLI），支持嵌套子分类递归遍历和并发生成。
 ---
 
 # Zotero Paper Report
@@ -32,73 +31,7 @@ description: >-
 
 ---
 
-## Phase 0: 意图识别与路由
-
-在进入具体流程之前，**首先分析用户请求，判断是「单篇论文」还是「批量生成」**。
-
-### 0.1 检测用户意图
-
-分析用户输入中的关键词：
-
-**批量生成的关键词（任一命中即判定为批量）**：
-- 分类名/路径: "XX分类下的"、"XX目录下的"、"XX collection"
-- 批量语义: "所有论文"、"全部论文"、"所有条目"、"批量生成"、"一键生成"
-- 范围语义: "整个分类"、"全部分类"、"遍历"、"全部生成"
-- 嵌套语义: "包括子分类"、"递归"、"子目录也"
-
-**单篇论文的关键词（保持现有流程）**：
-- 具体标题: "标题包含XXX"、"标题为XXX"、"这篇论文"
-- "帮我分析这篇"、"写个文献报告"等
-
-**模糊情况（无法确定）**：
-- 使用 AskUserQuestion 让用户选择是「单篇生成」还是「批量生成」
-
-### 0.2 批量模式：提取参数并执行
-
-如果检测到批量意图，从用户自然语言中提取参数：
-
-- **分类名**: 引号内的文本、"XX分类"、"XX目录"
-- **格式偏好**: "用Markdown"、"HTML格式" → 使用 `--format`
-- **并发度**: "同时跑3个"、"并发5个" → 使用 `--concurrency`
-- **缺失PDF策略**: "没有PDF的跳过"、"缺少PDF就用摘要" → 使用 `--on-missing-pdf`
-
-**执行步骤**：
-
-1. **确认参数**: 向用户展示解析到的参数（分类名、格式、并发度），确认后继续。
-
-2. **调用 zotero-paper-report CLI**: 通过 Bash 工具调用 Python 批量引擎（始终递归遍历子分类）：
-   ```bash
-   python -m zotero_paper_report \
-     --collection "分类名" \
-     --format html \
-     --concurrency 3
-   ```
-
-3. **监控执行**: 
-   - 如果论文数量 ≤ 5 篇，前台等待 zotero-paper-report 完成
-   - 如果论文数量 > 5 篇，使用 `Bash(run_in_background=true)` 后台执行，
-     告知用户可以通过 `zotero-paper-report --resume <run_id>` 查看进度
-
-4. **汇报结果**: 程序完成后，读取 `~/.claude/zotero-paper-report/{run_id}.json`，
-   向用户展示汇总结果（成功/失败/跳过数量）。
-
-### 0.3 单篇模式
-
-如果检测到单篇请求，直接进入 Phase 1（搜索 Zotero），保持现有流程不变。
-
----
-
 ## Phase 1: 搜索 Zotero
-
-### 1.0 批量模式 vs 搜索模式
-
-**批量模式（从 Phase 0 路由过来）**：
-- 已知 item key，跳过 search_library
-- 直接使用 `get_item_details(itemKey, mode="complete")` 进入 Phase 2
-- 提示中会明确包含 "BATCH_MODE: true" 标识
-
-**搜索模式（单篇论文）**：
-- 执行原有的 search_library → 确认匹配流程（见 1.1-1.2）
 
 ### 1.1 执行搜索
 
@@ -219,17 +152,6 @@ for page in reader.pages:
 ---
 
 ## Phase 3: 确认输出格式
-
-### 3.0 批量模式检测
-
-如果用户请求中包含批量模式标识（Phase 0 判断为批量），或子进程 prompt 中包含
-"BATCH_MODE: true"，则**跳过本节的所有 AskUserQuestion 调用**，直接使用以下预配置：
-
-- 格式: 来自批量配置（默认 html）
-- 保存本地: 来自批量配置（默认 true）
-- 不询问任何确认问题，直接进入 Phase 4
-
-**正常交互模式（单篇论文）**：
 
 使用 `AskUserQuestion` 一次性询问用户两个偏好：
 
