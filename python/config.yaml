@@ -1,0 +1,21 @@
+# zotero-paper-report — global default configuration
+# All values can be overridden via CLI flags or environment variables.
+# Priority: CLI flags > environment variables > config.yaml > built-in defaults
+
+output:
+  format: html              # html | markdown
+  save_local: true          # also save report to PDF directory
+
+batch:
+  concurrency: 3            # max parallel Claude Code subprocesses
+  skip_existing: true       # skip items that already have a "文献报告" note
+
+behavior:
+  on_missing_pdf: skip      # skip | abstract | ask
+  on_subagent_error: skip   # skip | retry
+  max_retries: 1            # retry count on subagent failure (if on_subagent_error=retry)
+  subagent_timeout: 600     # seconds per paper (10 min default)
+
+zotero:
+  db_path: null             # auto-detect from ~/Zotero/zotero.sqlite
+  storage_path: null        # auto-detect from ~/Zotero/storage/
